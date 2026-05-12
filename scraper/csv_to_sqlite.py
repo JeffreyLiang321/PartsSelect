@@ -9,14 +9,28 @@ uses INSERT OR REPLACE so duplicates are handled cleanly.
 """
 
 import csv
-import json
 import os
 import sqlite3
+import chromadb
+from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
 
-BASE_DIR  = os.path.join(os.path.dirname(__file__), "..", "data")
-CSV_PATH  = os.path.join(BASE_DIR, "parts.csv")
-DB_PATH   = os.path.join(BASE_DIR, "parts.db")
+BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+CSV_PATH = os.path.join(BASE_DIR, "parts.csv")
+DB_PATH  = os.path.join(BASE_DIR, "parts.db")
 
+# ChromaDB lives next to my SQLite db
+CHROMA_PATH = os.path.join(BASE_DIR, "chroma")
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+def get_embedding(text: str) -> list[float]:
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return response.data[0].embedding
 
 def init_db(conn: sqlite3.Connection):
     conn.executescript("""
@@ -42,44 +56,37 @@ def init_db(conn: sqlite3.Connection):
             rating              REAL,
             review_count        INTEGER
         );
-
-        CREATE TABLE IF NOT EXISTS repair_guides (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            appliance   TEXT,
-            symptom     TEXT,
-            steps       TEXT,
-            part_types  TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS blog_posts (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            title           TEXT,
-            url             TEXT UNIQUE,
-            appliance_type  TEXT,
-            content         TEXT
-        );
     """)
-
 
 def migrate():
     if not os.path.exists(CSV_PATH):
-        print(f"✗ {CSV_PATH} not found — run the scraper first")
+        print(f"✗ {CSV_PATH} not found")
         return
 
+    # SQLite setup
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
 
+    # ChromaDB setup — one collection for semantic search
+    chroma = chromadb.PersistentClient(path=CHROMA_PATH)
+    collection = chroma.get_or_create_collection(
+        name="parts",
+        metadata={"hnsw:space": "cosine"}
+    )
+
     inserted = 0
     skipped  = 0
+    embedded = 0
 
     with open(CSV_PATH, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             try:
-                price = float(row["part_price"]) if row.get("part_price") else None
-                rating = float(row["rating"]) if row.get("rating") else None
-                review_count = int(row["review_count"]) if row.get("review_count") else 0
-                in_stock = int(row["in_stock"]) if row.get("in_stock") else 0
+                # --- SQLite insert (same as before) ---
+                price        = float(row["part_price"])  if row.get("part_price")  else None
+                rating       = float(row["rating"])      if row.get("rating")      else None
+                review_count = int(row["review_count"])  if row.get("review_count") else 0
+                in_stock     = int(row["in_stock"])      if row.get("in_stock")    else 0
 
                 conn.execute("""
                     INSERT OR REPLACE INTO parts VALUES (
@@ -98,23 +105,42 @@ def migrate():
                     "in_stock":     in_stock,
                 })
                 inserted += 1
+
+                # ChromaDB embed (symptoms + description)
+                symptoms    = row.get("symptoms", "")
+                description = row.get("description", "")
+                text_to_embed = f"{symptoms} {description}".strip()
+
+                if text_to_embed and row.get("part_id"):
+                    embedding = get_embedding(text_to_embed)
+                    collection.upsert(
+                        ids=[row["part_id"]],
+                        embeddings=[embedding],
+                        documents=[text_to_embed],
+                        metadatas=[{
+                            "part_id":      row["part_id"],
+                            "part_name":    row.get("part_name", ""),
+                            "appliance_type": row.get("appliance_type", ""),
+                            "brand":        row.get("brand", ""),
+                            "part_price":   str(price or ""),
+                            "image_url":    row.get("image_url", ""),
+                            "in_stock":     str(in_stock),
+                        }]
+                    )
+                    embedded += 1
+                    if embedded % 100 == 0:
+                        print(f"  embedded {embedded} parts...")
+
             except Exception as e:
-                print(f"  skipped row {row.get('part_id', '?')}: {e}")
+                print(f"  skipped {row.get('part_id', '?')}: {e}")
                 skipped += 1
 
     conn.commit()
     conn.close()
 
-    print(f"✓ Migrated {inserted} parts to {DB_PATH}")
-    if skipped:
-        print(f"  {skipped} rows skipped due to errors")
-
-    # Verify
-    conn = sqlite3.connect(DB_PATH)
-    count = conn.execute("SELECT COUNT(*) FROM parts").fetchone()[0]
-    conn.close()
-    print(f"✓ parts.db now has {count} rows")
-
+    print(f"✓ SQLite: {inserted} parts inserted, {skipped} skipped")
+    print(f"✓ ChromaDB: {embedded} parts embedded")
+    print(f"✓ Vector store at {CHROMA_PATH}")
 
 if __name__ == "__main__":
     migrate()

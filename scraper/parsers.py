@@ -218,22 +218,24 @@ def parse_product_page(
                 best = t
         description = best[:1500]
 
-    # Compatible models 
-    # Scope to the compatibility/crossref section to avoid nav/boilerplate noise
+    # Compatible models
+    # The "Model Cross Reference" section uses div.pd__crossref as container.
+    # Each model number is an <a href="/Models/{model}/"> inside div.pd__crossref__list.
+    # "Load more" means we only capture the initially rendered rows (~20-30),
+    # which is sufficient for compatibility lookups.
     compatible_models = []
-    compat_section = (
-        soup.select_one("div.pd__crossref")
-        or soup.select_one("div#Compatibility")
-        or soup.select_one("div.js-crossref")
-    )
-    search_text = _text(compat_section) if compat_section else ""
-
-    raw_models = re.findall(r"\b([A-Z]{2,}[0-9][A-Z0-9]{4,})\b", search_text)
     seen_models: set[str] = set()
-    for m in raw_models:
-        if m not in seen_models and not m.startswith("PS") and len(m) >= 7:
-            seen_models.add(m)
-            compatible_models.append(m)
+
+    crossref = soup.select_one("div.pd__crossref")
+    if crossref:
+        for a in crossref.select("div.pd__crossref__list a[href]"):
+            href = a.get("href", "")
+            if "/Models/" in href:
+                model = a.get_text(strip=True)
+                if model and model not in seen_models:
+                    seen_models.add(model)
+                    compatible_models.append(model)
+
     compatible_models_str = " | ".join(compatible_models[:50])
 
     # Image URL 

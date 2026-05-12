@@ -29,21 +29,21 @@ from parsers import (
     parse_product_page,
 )
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# Paths
 
 BASE_DIR        = os.path.join(os.path.dirname(__file__), "..", "data")
 CSV_PATH        = os.path.join(BASE_DIR, "parts.csv")
 VISITED_PATH    = os.path.join(BASE_DIR, "visited_pages.txt")
 URLS_PATH       = os.path.join(BASE_DIR, "urls_to_scrape.txt")
 
-# ── Entry points ──────────────────────────────────────────────────────────────
+# Entry points 
 
 APPLIANCE_PAGES = [
     ("https://www.partselect.com/Refrigerator-Parts.htm", "refrigerator"),
     ("https://www.partselect.com/Dishwasher-Parts.htm",   "dishwasher"),
 ]
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# Config
 
 DELAY_MIN      = 1.5
 DELAY_MAX      = 3.0
@@ -59,7 +59,7 @@ CSV_FIELDS = [
     "rating", "review_count",
 ]
 
-# ── Anti-detection init script ────────────────────────────────────────────────
+# Anti-detection init script
 
 STEALTH_SCRIPT = """
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -78,7 +78,7 @@ window.navigator.permissions.query = (p) =>
         : _origQuery(p);
 """
 
-# ── Progress helpers ──────────────────────────────────────────────────────────
+# Progress helpers
 
 def load_visited_pages() -> set[str]:
     if not os.path.exists(VISITED_PATH):
@@ -153,7 +153,7 @@ def reset_progress():
     print("[reset] parts.csv kept — delete manually if you want a full fresh start")
 
 
-# ── Browser ───────────────────────────────────────────────────────────────────
+# Browser helpers
 
 def make_browser():
     pw = sync_playwright().start()
@@ -223,7 +223,7 @@ def polite_delay():
     time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
 
 
-# ── Phase 1: collect all product URLs ────────────────────────────────────────
+# Phase 1: collect all product URLs 
 
 def collect_all_product_urls(
     page: Page,
@@ -244,7 +244,7 @@ def collect_all_product_urls(
         print(f"[phase1] {appliance_type.upper()} — {appliance_url}")
         print(f"{'='*60}")
 
-        # ── Level 1: get brand links ──────────────────────────────────────────
+        # 1: get brand links
         if appliance_url in visited:
             print(f"  [skip] main page already visited")
         else:
@@ -265,7 +265,7 @@ def collect_all_product_urls(
         brand_links = parse_brand_links(html)
         polite_delay()
 
-        # ── Level 2: visit each brand page ───────────────────────────────────
+        # 2: visit each brand page 
         for b_idx, brand_url in enumerate(brand_links, 1):
             print(f"\n  [brand {b_idx}/{len(brand_links)}] {brand_url}")
 
@@ -295,7 +295,7 @@ def collect_all_product_urls(
             mark_page_visited(brand_url)
             polite_delay()
 
-            # ── Level 3: visit each subcategory ──────────────────────────────
+            # 3: visit each subcategory 
             for s_idx, sub_url in enumerate(subcats, 1):
                 if sub_url in visited:
                     continue
@@ -323,7 +323,7 @@ def collect_all_product_urls(
     return product_urls
 
 
-# ── Phase 2: scrape each product page ─────────────────────────────────────────
+# Phase 2: scrape each product page 
 
 def scrape_all_products(
     page: Page,
@@ -384,7 +384,7 @@ def scrape_all_products(
     print(f"[phase2 done] total rows in CSV: {count_csv_rows()}")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# Entry point
 
 def main():
     parser = argparse.ArgumentParser(description="PartSelect 3-level scraper")
@@ -410,9 +410,8 @@ def main():
 
     pw, browser, context, page = make_browser()
     try:
-        # ── Phase 1 ───────────────────────────────────────────────────────────
         # If urls_to_scrape.txt already exists, Phase 1 was completed on a
-        # previous run — load from file and skip directly to Phase 2.
+        # previous run —> just load from file and skip directly to Phase 2.
         cached_urls = load_product_urls()
         if cached_urls:
             print(f"\n[phase1] Skipping — loaded {len(cached_urls)} product URLs from cache")

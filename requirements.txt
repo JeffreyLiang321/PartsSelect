@@ -1,0 +1,25 @@
+# Scraper 
+playwright==1.44.0
+beautifulsoup4==4.12.3
+lxml==5.2.1
+
+# Backend API 
+fastapi>=0.111.0
+uvicorn>=0.29.0
+pydantic>=2.7.1
+
+# Anthropic 
+anthropic>=0.28.0
+
+# OpenAI
+openai>=1.30.0
+
+# Vector / Embeddings
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+
+# MCP 
+mcp>=1.0.0
+
+# Utilities
+python-dotenv>=1.0.1
