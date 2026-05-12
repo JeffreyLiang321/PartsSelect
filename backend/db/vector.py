@@ -1,4 +1,3 @@
-# backend/db/vector.py
 """
 Semantic search layer — all vector retrieval lives here.
 
@@ -25,19 +24,19 @@ import json
 import chromadb
 from openai import OpenAI
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# Paths
 
 _BASE_DIR     = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 _CHROMA_PATH  = os.path.join(_BASE_DIR, "chroma")
 _REPAIRS_PATH = os.path.join(_BASE_DIR, "repair_guides.json")
 _BLOGS_PATH   = os.path.join(_BASE_DIR, "blogs.json")
 
-# ── Clients ───────────────────────────────────────────────────────────────────
+# Clients 
 
 _openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 _chroma_client = chromadb.PersistentClient(path=_CHROMA_PATH)
 
-# ── Module-level collection handles (populated lazily) ────────────────────────
+# Module-level collection handles (populated lazily)
 # None until first query — avoids slow startup on import.
 
 _parts_col   = None
@@ -45,7 +44,7 @@ _repairs_col = None
 _blogs_col   = None
 
 
-# ── Embedding ─────────────────────────────────────────────────────────────────
+# Embedding
 
 def _embed(text: str) -> list[float]:
     response = _openai_client.embeddings.create(
@@ -55,7 +54,7 @@ def _embed(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-# ── Collection loaders ────────────────────────────────────────────────────────
+# Collection loaders 
 
 def _get_parts_collection():
     """
@@ -193,7 +192,7 @@ def _get_blogs_collection():
     return _blogs_col
 
 
-# ── Public search functions ───────────────────────────────────────────────────
+# Public search functions
 
 def semantic_search(symptom: str, appliance_type: str, k: int = 5) -> list[dict]:
     """
@@ -226,16 +225,25 @@ def semantic_search(symptom: str, appliance_type: str, k: int = 5) -> list[dict]
     distances = results.get("distances", [[]])[0]
 
     for meta, distance in zip(metadatas, distances):
+
+        similarity = 1 - distance
+
+        # Filter weak semantic matches
+        if similarity < 0.45:
+            continue
+
         part_id = meta.get("part_id")
+
         if not part_id or part_id in seen:
             continue
+
         seen.add(part_id)
 
         # Enrich with full record from SQLite
         full_part = get_part(part_id)
+
         if full_part:
-            # Attach similarity score so caller can see ranking signal
-            full_part["similarity_score"] = round(1 - distance, 4)
+            full_part["similarity_score"] = round(similarity, 4)
             parts.append(full_part)
 
     return parts
@@ -263,6 +271,10 @@ def search_repair_guide(symptom: str, appliance_type: str) -> dict | None:
 
     if not metadatas:
         return None
+    
+    top_similarity = round(1 - distances[0], 4)
+    if top_similarity < 0.50:  # guide isn't relevant enough
+        return None
 
     # Return the top match with full parts JSON deserialised
     top = metadatas[0]
@@ -278,14 +290,7 @@ def search_repair_guide(symptom: str, appliance_type: str) -> dict | None:
     }
 
 
-def search_blogs(query: str, k: int = 3) -> list[dict]:
-    """
-    Find blog posts relevant to a query by semantic similarity over titles.
-
-    Returns list of {title, url} dicts ranked by relevance.
-    Caller (rag_mcp) is responsible for only surfacing these for
-    in-scope refrigerator/dishwasher topics per the system prompt rules.
-    """
+def search_blogs(query: str, k: int = 1) -> list[dict]:
     col = _get_blogs_collection()
 
     results = col.query(
@@ -305,4 +310,5 @@ def search_blogs(query: str, k: int = 3) -> list[dict]:
         }
         for meta, distance in zip(metadatas, distances)
         if meta.get("title") and meta.get("url")
+        and (1 - distance) >= 0.55  # filter weak matches inline
     ]

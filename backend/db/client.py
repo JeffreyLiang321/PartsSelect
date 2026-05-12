@@ -11,6 +11,7 @@ def get_db():
     finally:
         conn.close()
 
+# standard PS format
 def get_part(part_id: str) -> dict | None:
     with get_db() as conn:
         row = conn.execute(
@@ -19,10 +20,18 @@ def get_part(part_id: str) -> dict | None:
         ).fetchone()
         return dict(row) if row else None
 
+def get_part_by_mpn(mpn: str) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM parts WHERE mpn_id = ?",
+            (mpn,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
 def check_compatibility(part_id: str, model_number: str) -> dict:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT part_id, part_name, compatible_models FROM parts WHERE part_id = ?",
+            "SELECT * FROM parts WHERE part_id = ?",
             (part_id,)
         ).fetchone()
 
@@ -33,11 +42,10 @@ def check_compatibility(part_id: str, model_number: str) -> dict:
     compatible = model_number.strip().upper() in models
 
     return {
-        "compatible":  compatible,
-        "part_name":   row["part_name"],
-        "part_id":     row["part_id"],
-        "reason":      "Found in compatibility list" if compatible else "Not in compatibility list",
-        "confidence":  "exact"
+        **dict(row),
+        "compatible": compatible,
+        "reason":     "Found in compatibility list" if compatible else "Not in compatibility list",
+        "confidence": "exact"
     }
 
 def search_by_model(model_number: str) -> list[dict]:

@@ -9,10 +9,9 @@ DB_PATH     = os.path.join(DATA_DIR, "parts.db")
 CHROMA_PATH = os.path.join(DATA_DIR, "chroma")
 
 OPENAI_API_KEY    = os.environ["OPENAI_API_KEY"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-CLAUDE_MODEL    = "claude-sonnet-4-5"
+OPENAI_MODEL    = "gpt-5.4-mini"
 
 MAX_ITERATIONS = 10
 

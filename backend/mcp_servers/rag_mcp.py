@@ -1,84 +1,93 @@
 from backend.db.vector import semantic_search, search_repair_guide, search_blogs
 
 
-# ── Tool definitions ──────────────────────────────────────────────────────────
+# Tool definitions
 
 TOOLS = [
     {
-        "name": "diagnose_symptom",
-        "description": (
-            "Find parts that fix a described problem using semantic search. "
-            "Use this when the user describes a symptom or malfunction — "
-            "e.g. 'ice maker not working', 'dishwasher leaking from bottom', "
-            "'fridge making loud noise'. "
-            "Returns full part details including price, stock, and product URL. "
-            "Do NOT call get_part after this — results are already complete."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "symptom": {
-                    "type": "string",
-                    "description": "Natural language description of the problem"
+        "type": "function",
+        "function": {
+            "name": "diagnose_symptom",
+            "description": (
+                "Find parts that fix a described problem using semantic search. "
+                "Use this when the user describes a symptom or malfunction — "
+                "e.g. 'ice maker not working', 'dishwasher leaking from bottom', "
+                "'fridge making loud noise'. "
+                "Returns full part details including price, stock, and product URL. "
+                "Do NOT call get_part after this — results are already complete."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symptom": {
+                        "type": "string",
+                        "description": "Natural language description of the problem"
+                    },
+                    "appliance_type": {
+                        "type": "string",
+                        "enum": ["refrigerator", "dishwasher"],
+                        "description": "Must be exactly 'refrigerator' or 'dishwasher'"
+                    }
                 },
-                "appliance_type": {
-                    "type": "string",
-                    "enum": ["refrigerator", "dishwasher"],
-                    "description": "Must be exactly 'refrigerator' or 'dishwasher'"
-                }
-            },
-            "required": ["symptom", "appliance_type"]
+                "required": ["symptom", "appliance_type"]
+            }
         }
     },
     {
-        "name": "search_repair_guide",
-        "description": (
-            "Find a step-by-step repair guide for an appliance symptom. "
-            "Use when the user asks how to fix something, wants repair steps, "
-            "or asks about difficulty of a repair. "
-            "Returns the symptom, difficulty, repair steps per part, and a video URL."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "symptom": {
-                    "type": "string",
-                    "description": "Natural language description of the symptom"
+        "type": "function",
+        "function": {
+            "name": "search_repair_guide",
+            "description": (
+                "Find a step-by-step repair guide for an appliance symptom. "
+                "Use when the user asks how to fix something, wants repair steps, "
+                "or asks about difficulty of a repair. "
+                "Returns the symptom, difficulty, repair steps per part, and a video URL."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symptom": {
+                        "type": "string",
+                        "description": "Natural language description of the symptom"
+                    },
+                    "appliance_type": {
+                        "type": "string",
+                        "enum": ["refrigerator", "dishwasher"],
+                        "description": "Must be exactly 'refrigerator' or 'dishwasher'"
+                    }
                 },
-                "appliance_type": {
-                    "type": "string",
-                    "enum": ["refrigerator", "dishwasher"],
-                    "description": "Must be exactly 'refrigerator' or 'dishwasher'"
-                }
-            },
-            "required": ["symptom", "appliance_type"]
+                "required": ["symptom", "appliance_type"]
+            }
         }
     },
     {
-        "name": "search_blogs",
-        "description": (
-            "Find relevant PartSelect blog posts on a topic. "
-            "Use when the user asks a how-to or maintenance question that "
-            "would be well served by a full article — e.g. 'how do I clean "
-            "my dishwasher filter', 'why is my fridge making noise'. "
-            "Returns matching blog titles and URLs to share with the user. "
-            "Only call this for refrigerator or dishwasher topics."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Topic or question to search blog posts for"
-                }
-            },
-            "required": ["query"]
+        "type": "function",
+        "function": {
+            "name": "search_blogs",
+            "description": (
+                "Find relevant PartSelect blog posts on a topic. "
+                "Use when the user asks a how-to or maintenance question that "
+                "would be well served by a full article — e.g. 'how do I clean "
+                "my dishwasher filter', 'why is my fridge making noise'. "
+                "Returns matching blog titles and URLs to share with the user. "
+                "Only call this for refrigerator or dishwasher topics."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Topic or question to search blog posts for"
+                    }
+                },
+                "required": ["query"]
+            }
         }
     },
 ]
 
 
-# ── Execution ─────────────────────────────────────────────────────────────────
+# Execution
 
 def execute(tool_name: str, inputs: dict) -> dict:
     """
@@ -96,7 +105,7 @@ def execute(tool_name: str, inputs: dict) -> dict:
             return {"error": f"rag_mcp does not own tool: {tool_name}"}
 
 
-# ── Private functions ─────────────────────────────────────────────────────────
+# Private functions
 
 def _diagnose_symptom(symptom: str, appliance_type: str) -> dict:
     if appliance_type not in ("refrigerator", "dishwasher"):
