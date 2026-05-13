@@ -80,7 +80,7 @@ Tool descriptions are written as decision rules ("call this when X, not when Y")
 
 Categories: `part_lookup`, `install`, `compatibility`, `model_search`, `symptom`, `repair_guide`, `blog`, `mpn_lookup`, `out_of_scope`, `adversarial`, `alternatives`
 
-![Eval results](./eval_results.png)
+![Eval results](./eval_result.png)
 
 ```bash
 python eval.py           # run all 17 cases
