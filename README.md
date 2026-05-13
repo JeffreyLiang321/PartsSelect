@@ -8,11 +8,15 @@ A vertical AI agent for the PartSelect e-commerce platform, scoped to refrigerat
 
 > https://www.loom.com/share/459b097f6790479291dd7f6cdc1932a8
 
+![Interface](./interface_demo1.png)
+
 ---
 
 ## Scope, UX, and Extensibility
 
 **Scope enforcement** is implemented at two levels. The system prompt contains explicit routing rules that map every query type to a specific tool, and explicit refusal rules for anything outside refrigerator/dishwasher parts (order tracking, other appliances, general questions). The agent never guesses compatibility, price, or stock status without a tool call; hallucination of factual claims is explicitly prohibited.
+
+![Interface](./interface_demo2.png)
 
 **UX decisions** were driven by what a customer mid-repair actually needs:
 - **Interruptible queries** allow users to stop an in-progress request and immediately ask a new question, preventing lock-in during long retrieval or reasoning chains.
@@ -74,7 +78,9 @@ Tool descriptions are written as decision rules ("call this when X, not when Y")
 
 **LLM-as-judge** (rubric-based): response quality per query type. Criteria are written as positive assertions for reliable scoring.
 
-Categories: `part_lookup`, `install`, `compatibility`, `model_search`, `symptom`, `repair_guide`, `blog`, `mpn_lookup`, `out_of_scope`, `adversarial`
+Categories: `part_lookup`, `install`, `compatibility`, `model_search`, `symptom`, `repair_guide`, `blog`, `mpn_lookup`, `out_of_scope`, `adversarial`, `alternatives`
+
+![Eval results](./eval_results.png)
 
 ```bash
 python eval.py           # run all 17 cases
@@ -119,7 +125,7 @@ cd frontend && npm install && npm start
 
 | Layer | Choice |
 |---|---|
-| LLM | gpt-4o-mini |
+| LLM | gpt-5.4-mini |
 | Embeddings | text-embedding-3-small |
 | Exact search | SQLite |
 | Semantic search | ChromaDB (cosine similarity) |

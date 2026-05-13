@@ -15,9 +15,6 @@ function extractYouTubeVideos(text) {
     const videoId = match[1];
     if (!seen.has(videoId)) {
       seen.add(videoId);
-      // Check ~80 chars before the URL for install/repair context
-      const fullText = text.toLowerCase();
-      const isInstall = fullText.includes('install') || fullText.includes('how to replace');
       videos.push({ videoId, url: match[0], label: "Watch Guide"});
     }
   }
