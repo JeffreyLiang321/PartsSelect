@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-function InputBar({ onSend, isLoading, applianceType, onApplianceChange }) {
+function InputBar({ onSend, onStop, isLoading, applianceType, onApplianceChange }) {
   const [input, setInput] = useState('');
   const textareaRef = useRef(null);
 
@@ -33,7 +33,7 @@ function InputBar({ onSend, isLoading, applianceType, onApplianceChange }) {
   };
 
   const placeholder = isLoading
-    ? 'Waiting for response...'
+    ? 'Generating… stop anytime, or type your next question'
     : applianceType
     ? `Ask about your ${applianceType}…`
     : 'Ask about parts, compatibility, or repairs…';
@@ -67,17 +67,37 @@ function InputBar({ onSend, isLoading, applianceType, onApplianceChange }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={isLoading}
           />
           <div className="input-box-footer">
-            <button
-              className="send-button"
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Send (Enter)"
-            >
-              Send ↑
-            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                className="stop-button"
+                onClick={onStop}
+                title="Stop generating"
+                aria-label="Stop generating"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <rect x="2" y="2" width="10" height="10" rx="1.5" fill="currentColor" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="send-button"
+                onClick={handleSend}
+                disabled={!canSend}
+                title="Send (Enter)"
+              >
+                Send ↑
+              </button>
+            )}
           </div>
         </div>
 

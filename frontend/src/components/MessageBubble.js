@@ -15,7 +15,10 @@ function extractYouTubeVideos(text) {
     const videoId = match[1];
     if (!seen.has(videoId)) {
       seen.add(videoId);
-      videos.push({ videoId, url: match[0] });
+      // Check ~80 chars before the URL for install/repair context
+      const fullText = text.toLowerCase();
+      const isInstall = fullText.includes('install') || fullText.includes('how to replace');
+      videos.push({ videoId, url: match[0], label: "Watch Guide"});
     }
   }
   return videos;
@@ -96,7 +99,7 @@ function PartCard({ part }) {
   );
 }
 
-function VideoCard({ url, videoId }) {
+function VideoCard({ url, videoId, label='Watch Repair Guide' }) {
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="video-card">
       <div className="video-thumb-wrap">
@@ -107,7 +110,7 @@ function VideoCard({ url, videoId }) {
         />
         <div className="video-play-overlay">▶</div>
       </div>
-      <span className="video-label">Watch Repair Guide</span>
+      <span className="video-label">{label}</span>
     </a>
   );
 }
@@ -115,7 +118,7 @@ function VideoCard({ url, videoId }) {
 // Main component
 
 function MessageBubble({ message, isFirst, onSend }) {
-  const { role, content, isError, parts = [] } = message;
+  const { role, content, isError, isStopped, parts = [] } = message;
   const [copied, setCopied] = useState(false);
   const bubbleRef = useRef(null);
 
@@ -148,6 +151,24 @@ function MessageBubble({ message, isFirst, onSend }) {
     );
   }
 
+  // Stopped marker — slim inline indicator, no avatar/copy
+  if (isStopped) {
+    return (
+      <div className="stopped-row" role="status">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 14 14"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect x="2" y="2" width="10" height="10" rx="1.5" fill="currentColor" />
+        </svg>
+        <span>{content || 'Response stopped.'}</span>
+      </div>
+    );
+  }
+
   // Agent message
   const bubbleClass = [
     'bubble agent',
@@ -163,7 +184,11 @@ function MessageBubble({ message, isFirst, onSend }) {
   // mirror system prompt rule to avoid overwhelming users with too many parts if no model number is given
   const hasModelNumber = content.match(/\b[A-Z]{2,}[\dA-Z]{4,}\b/);
   const uniqueBrands = new Set(parts.map((p) => p.brand).filter(Boolean));
-  const displayParts = !hasModelNumber && uniqueBrands.size > 3 ? parts.slice(0, 3) : parts;
+  // const displayParts = !hasModelNumber && uniqueBrands.size > 3 ? parts.slice(0, 3) : parts;
+  const mentionedParts = parts.filter(p => content.includes(p.part_id));
+  const displayParts = mentionedParts.length > 0 ? mentionedParts : (
+    (!hasModelNumber && uniqueBrands.size > 3 ? parts.slice(0, 3) : parts)
+  );
 
   return (
     <div className="message-row agent">
@@ -174,8 +199,8 @@ function MessageBubble({ message, isFirst, onSend }) {
           className={bubbleClass}
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        {videos.map(({ url, videoId }) => (
-          <VideoCard key={videoId} url={url} videoId={videoId} />
+        {videos.map(({ url, videoId, label }) => (
+          <VideoCard key={videoId} url={url} videoId={videoId} label={label} />
         ))}
         {displayParts.map((part) => (
           <PartCard key={part.part_id} part={part} />

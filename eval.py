@@ -255,6 +255,19 @@ TEST_CASES = [
             "Response declines to give a simple yes/no and instead gives the correct price",
         ],
     },
+    {
+        "id": 17,
+        "category": "replacement_alternatives",
+        "query": "I need to replace part W10847507",
+        "expect_tools": ["get_by_mpn"],
+        "expect_tool_inputs": [{"mpn": "W10847507"}],
+        "check_parts_exist": True,
+        "judge_rubric": [
+            "Response surfaces PS11738120 as the current replacement",
+            "Response does not treat W10847507 as a current in-stock part",
+            "Response includes product URL",
+        ]
+    }
 ]
 
 

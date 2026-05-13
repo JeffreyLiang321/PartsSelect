@@ -1,6 +1,5 @@
 from backend.db.vector import semantic_search, search_repair_guide, search_blogs
 
-
 # Tool definitions
 
 TOOLS = [

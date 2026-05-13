@@ -82,7 +82,7 @@ def migrate():
         reader = csv.DictReader(f)
         for row in reader:
             try:
-                # --- SQLite insert (same as before) ---
+                # SQLite insert (same as before) 
                 price        = float(row["part_price"])  if row.get("part_price")  else None
                 rating       = float(row["rating"])      if row.get("rating")      else None
                 review_count = int(row["review_count"])  if row.get("review_count") else 0
@@ -109,7 +109,9 @@ def migrate():
                 # ChromaDB embed (symptoms + description)
                 symptoms    = row.get("symptoms", "")
                 description = row.get("description", "")
-                text_to_embed = f"{symptoms} {description}".strip()
+                text_to_embed = " ".join(filter(None, [row.get("part_name", ""),
+                                                       row.get("symptoms", ""),
+                                                       row.get("description", "")])).strip()
 
                 if text_to_embed and row.get("part_id"):
                     embedding = get_embedding(text_to_embed)

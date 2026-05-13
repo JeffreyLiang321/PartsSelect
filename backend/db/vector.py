@@ -9,9 +9,9 @@ Three collections:
 
 Embedding model: text-embedding-3-small (OpenAI), same as csv_to_sqlite.py.
 
-Lazy initialisation: collections are loaded/built on first query, not at
-import time. This means a cold start on first request takes a few seconds
-(embedding build) but restarts are instant (loading from disk).
+Lazy initialization: collections are loaded/built on first query, not at
+import time, so a cold start on first request takes a few seconds
+(embedding build) but restarts after are instant (loading from disk).
 
 Functions exported (called by rag_mcp.py):
   semantic_search(symptom, appliance_type)  → list of full part dicts
@@ -273,7 +273,7 @@ def search_repair_guide(symptom: str, appliance_type: str) -> dict | None:
         return None
     
     top_similarity = round(1 - distances[0], 4)
-    if top_similarity < 0.50:  # guide isn't relevant enough
+    if top_similarity < 0.3:  # Since symptom labels are short and natura language queries, a lower floor is reasonable
         return None
 
     # Return the top match with full parts JSON deserialised

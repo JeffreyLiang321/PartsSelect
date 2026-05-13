@@ -268,6 +268,24 @@ body {
   color: #c62828;
 }
 
+/* Stopped marker — slim inline row, no bubble */
+.stopped-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  margin: 4px 0 4px 40px;
+  font-size: 12px;
+  font-style: italic;
+  color: #888888;
+  align-self: flex-start;
+}
+
+.stopped-row svg {
+  color: #aaaaaa;
+  flex-shrink: 0;
+}
+
 .bubble.user {
   background: #1d4a4b;
   color: #ffffff;
@@ -491,6 +509,39 @@ body {
   background: #e8d5a0;
   color: #999;
   cursor: not-allowed;
+}
+
+.stop-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #1d4a4b;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+  line-height: 0;
+}
+
+.stop-button:hover {
+  background: #c62828;
+}
+
+.stop-button:active {
+  transform: scale(0.94);
+}
+
+.stop-button:focus-visible {
+  outline: 2px solid #f0a500;
+  outline-offset: 2px;
+}
+
+.stop-button svg {
+  display: block;
 }
 
 .input-disclaimer {

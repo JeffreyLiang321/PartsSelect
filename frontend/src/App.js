@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
@@ -34,6 +34,7 @@ function App() {
   const [messages, setMessages] = useState(loadSession);
   const [isLoading, setIsLoading] = useState(false);
   const [applianceType, setApplianceType] = useState(null);
+  const abortControllerRef = useRef(null);
 
   // Derive from messages -> no separate state needed
   // const hasStarted = messages.some((m) => m.role === 'user');
@@ -55,13 +56,32 @@ function App() {
     setMessages(nextMessages);
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const data = await sendMessage(nextMessages);
+      // Don't ship "Response stopped" markers to the model — they're UI-only.
+      const payload = nextMessages.filter((m) => !m.isStopped);
+      const data = await sendMessage(payload, controller.signal);
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: data.reply, parts: data.parts || [] },
       ]);
-    } catch {
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // Keep the user's question visible and leave a clear stop marker
+        // so they can see what happened and ask something new.
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'Response stopped.',
+            isStopped: true,
+            parts: [],
+          },
+        ]);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -74,6 +94,10 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
   };
 
   const handleClear = () => {
@@ -89,6 +113,7 @@ function App() {
       <ChatWindow messages={messages} isLoading={isLoading} onSend={handleSend} />
       <InputBar
         onSend={handleSend}
+        onStop={handleStop}
         isLoading={isLoading}
         applianceType={applianceType}
         onApplianceChange={setApplianceType}
