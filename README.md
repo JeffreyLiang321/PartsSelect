@@ -16,7 +16,7 @@ A vertical AI agent for the PartSelect e-commerce platform, scoped to refrigerat
 
 ![Interface](./interface_demo1.png)
 
-!(./interface_demo2.png)
+![](./interface_demo2.png)
 
 **UX decisions** were driven by what a customer mid-repair actually needs:
 - **Interruptible queries** allow users to stop an in-progress request and immediately ask a new question, preventing lock-in during long retrieval or reasoning chains.
