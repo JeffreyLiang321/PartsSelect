@@ -1,6 +1,6 @@
 # PartSelect Parts Assistant
 
-A vertical AI agent for the PartSelect e-commerce platform, scoped to refrigerator and dishwasher parts. Built as a 48-hour case study.
+A vertical AI agent for the PartSelect e-commerce platform, scoped to refrigerator and dishwasher parts.
 
 ---
 
