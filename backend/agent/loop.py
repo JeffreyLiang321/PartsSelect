@@ -7,7 +7,7 @@ import threading
 import time
 from openai import OpenAI
 
-from backend.config import OPENAI_API_KEY, OPENAI_MODEL, MAX_ITERATIONS
+from backend.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_REASONING_EFFORT, MAX_ITERATIONS
 from backend.agent.system_prompt import SYSTEM_PROMPT
 from backend.mcp_servers import inventory_mcp, rag_mcp
 
@@ -81,6 +81,7 @@ def run_agent(
             max_completion_tokens=2048,
             tools=TOOLS,
             messages=messages,
+            **({"reasoning_effort": OPENAI_REASONING_EFFORT} if OPENAI_REASONING_EFFORT else {}),
         )
 
         msg = response.choices[0].message

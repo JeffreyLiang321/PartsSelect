@@ -11,7 +11,11 @@ CHROMA_PATH = os.path.join(DATA_DIR, "chroma")
 OPENAI_API_KEY    = os.environ["OPENAI_API_KEY"]
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-OPENAI_MODEL    = "gpt-5.4-mini"
+# gpt-6-luna: matched/beat gpt-5.4-mini and gpt-6.1-terra on eval.py at ~1/9 the cost.
+OPENAI_MODEL    = os.getenv("OPENAI_MODEL", "gpt-6-luna")
+# gpt-6 models reject function tools on /v1/chat/completions unless reasoning is off.
+# Set OPENAI_REASONING_EFFORT="" to omit the parameter (e.g. for gpt-5.4-mini).
+OPENAI_REASONING_EFFORT = os.getenv("OPENAI_REASONING_EFFORT", "none")
 
 MAX_ITERATIONS = 10
 
