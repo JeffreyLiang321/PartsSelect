@@ -7,6 +7,25 @@ import { sendMessage } from './api/api';
 
 const SESSION_KEY = 'partselect_messages';
 
+// Must stay within the backend's limits (main.py)
+const MAX_HISTORY = 20;
+const MAX_ASSISTANT_CHARS = 8000;
+
+function errorText(err) {
+  switch (err.status) {
+    case 429:
+      return err.message || "You're sending messages too quickly. Please wait a bit and try again.";
+    case 422:
+      return 'That message is too long. Please keep questions under 1,000 characters.';
+    case 502:
+    case 503:
+    case 504:
+      return 'The demo server is waking up. Please try again in a minute.';
+    default:
+      return 'Sorry, I ran into an issue. Please try again.';
+  }
+}
+
 const WELCOME_MESSAGE = {
   role: 'assistant',
   content: `Hi! I'm the PartSelect Parts Assistant. I can help you:
@@ -60,8 +79,15 @@ function App() {
     abortControllerRef.current = controller;
 
     try {
-      // Don't ship "Response stopped" markers to the model — they're UI-only.
-      const payload = nextMessages.filter((m) => !m.isStopped);
+      // Stop markers and error notices are UI-only; the backend also caps
+      // history length, so send only the most recent turns.
+      const payload = nextMessages
+        .filter((m) => !m.isStopped && !m.isError)
+        .slice(-MAX_HISTORY)
+        .map(({ role, content }) => ({
+          role,
+          content: role === 'assistant' ? content.slice(0, MAX_ASSISTANT_CHARS) : content,
+        }));
       const data = await sendMessage(payload, controller.signal);
       setMessages((prev) => [
         ...prev,
@@ -86,7 +112,7 @@ function App() {
         ...prev,
         {
           role: 'assistant',
-          content: 'Sorry, I ran into an issue. Please try again.',
+          content: errorText(err),
           isError: true,
           parts: [],
         },
