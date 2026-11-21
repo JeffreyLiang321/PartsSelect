@@ -1,0 +1,41 @@
+# Deploys backend code to the Hugging Face Space when a merge to main changes
+# it. Only code is uploaded; parts.db and the Chroma index are gitignored and
+# stay on the Space (re-upload them with deploy/hf-space/deploy.sh locally).
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - main.py
+      - backend/**
+      - deploy/hf-space/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Hugging Face Space
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Hugging Face CLI
+        run: pip install huggingface_hub==0.36.2
+      - name: Upload code
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CODE_ONLY: "1"
+        run: deploy/hf-space/deploy.sh
+      - name: Wait for rebuild and health-check
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python deploy/hf-space/wait_for_space.py
