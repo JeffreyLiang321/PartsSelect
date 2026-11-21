@@ -3,6 +3,7 @@ import './App.css';
 import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
+import SuggestedPrompts from './components/SuggestedPrompts';
 import { sendMessage } from './api/api';
 
 const SESSION_KEY = 'partselect_messages';
@@ -56,7 +57,7 @@ function App() {
   const abortControllerRef = useRef(null);
 
   // Derive from messages -> no separate state needed
-  // const hasStarted = messages.some((m) => m.role === 'user');
+  const hasStarted = messages.some((m) => m.role === 'user');
 
   useEffect(() => {
     try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(messages)); } catch {}
@@ -137,6 +138,7 @@ function App() {
     <div className="app">
       <Header onClear={handleClear} />
       <ChatWindow messages={messages} isLoading={isLoading} onSend={handleSend} />
+      {!hasStarted && !isLoading && <SuggestedPrompts onSelect={handleSend} />}
       <InputBar
         onSend={handleSend}
         onStop={handleStop}
