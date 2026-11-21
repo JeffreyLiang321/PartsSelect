@@ -10,6 +10,54 @@ A vertical AI agent for the PartSelect e-commerce platform, scoped to refrigerat
 
 ---
 
+## Live Demo & Deployment
+
+**Live:** https://partselect-agent-demo.vercel.app
+
+The live demo pairs a React frontend on Vercel with the FastAPI backend running in a Docker container on a Hugging Face Space. The SQLite and ChromaDB data ship inside the image as read-only files, so the backend needs no external database.
+
+### Architecture
+
+| Layer | Hosting |
+|---|---|
+| Frontend | React on Vercel, auto-deployed from `main` with preview builds on every PR |
+| Backend | FastAPI in Docker on a Hugging Face Space (free CPU tier) |
+| Keep-warm | A daily Vercel Cron pings the Space so it doesn't sleep after 48 hours of inactivity |
+
+### Model choice
+
+The agent moved from `gpt-5.4-mini` to `gpt-6-luna` after running the eval suite against three models. The goal was to cut cost and stay within budget without giving up tool routing or answer quality.
+
+| Model | Routing | Judge | Cost / query |
+|---|---|---|---|
+| **gpt-6-luna** | 17/17 | 48/51 (94%) | ~$0.0003 |
+| gpt-5.4-mini | 17/17 | 47/51 (92%) | ~$0.0026 |
+| gpt-6.1-terra | 17/17 | 44/51 (86%) | ~$0.0027 |
+
+Terra lost points for hedging on clear answers, such as replying "No." to a price question without giving the actual price. The judge stays on `gpt-5.4-mini`, so the agent is never graded by its own model.
+
+### Public-safety hardening
+
+A public endpoint backed by a paid API needs guardrails:
+- **No system-role injection:** the API only accepts `user` and `assistant` messages.
+- **Input limits:** 1,000 characters per message and 20 messages per request.
+- **Rate limiting:** 8 requests/min and 60/day per IP, plus a global cap of 1,500/day. Client IPs are read from the proxy-appended end of `X-Forwarded-For`, so spoofed headers can't bypass the limit.
+- **Origin check:** Hugging Face's proxy overrides CORS headers, so the API rejects requests from other sites itself.
+- **Budget:** a dedicated OpenAI project with a hard $20/month limit.
+- **Generic errors:** failures return a generic message while details stay in server logs.
+- **Secrets:** the OpenAI key lives only in Hugging Face Space secrets, and the deploy script refuses to upload `.env` files or anything resembling a key.
+
+### CI/CD
+
+Every PR runs three GitHub Actions checks, and `main` only accepts merges once all of them pass:
+- **Backend tests:** 17 tests covering the guardrails above, with the agent stubbed so no OpenAI calls are made
+- **Docker build:** verifies the backend image still builds
+- **Frontend build:** production build with lint warnings treated as errors
+
+On merge, Vercel deploys the frontend, and a GitHub Action uploads the backend code to the Space, waits for the rebuild, and runs a health check.
+
+---
+
 ## Scope, UX, and Extensibility
 
 **Scope enforcement** is implemented at two levels. The system prompt contains explicit routing rules that map every query type to a specific tool, and explicit refusal rules for anything outside refrigerator/dishwasher parts (order tracking, other appliances, general questions). The agent never guesses compatibility, price, or stock status without a tool call; hallucination of factual claims is explicitly prohibited.
@@ -72,7 +120,7 @@ Tool descriptions are written as decision rules ("call this when X, not when Y")
 
 ## Eval
 
-`eval.py` contains 17 test cases across 7 categories with dual scoring:
+`eval.py` contains 17 test cases across 11 categories with dual scoring:
 
 **Exact match** (deterministic): tool routing, tool inputs, part ID existence in DB (hallucination catch).
 
@@ -125,10 +173,12 @@ cd frontend && npm install && npm start
 
 | Layer | Choice |
 |---|---|
-| LLM | gpt-5.4-mini |
+| LLM | gpt-6-luna (eval judge: gpt-5.4-mini) |
 | Embeddings | text-embedding-3-small |
 | Exact search | SQLite |
 | Semantic search | ChromaDB (cosine similarity) |
 | Scraping | Playwright + BeautifulSoup |
 | Backend | FastAPI (stateless) |
 | Frontend | React |
+| Hosting | Vercel (frontend), Hugging Face Spaces Docker (backend) |
+| CI/CD | GitHub Actions |
