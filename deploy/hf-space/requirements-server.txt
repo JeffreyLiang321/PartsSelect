@@ -1,0 +1,8 @@
+# Runtime-only dependencies for the API server (scraper/eval deps live in requirements.txt).
+# chromadb must match the version that wrote data/chroma.
+fastapi==0.136.1
+uvicorn==0.46.0
+openai==2.36.0
+chromadb==1.5.9
+pydantic==2.13.4
+python-dotenv==1.2.2
