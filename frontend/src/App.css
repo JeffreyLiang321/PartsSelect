@@ -155,12 +155,6 @@ body {
   gap: 12px;
 }
 
-.header-status-img {
-  height: 28px;
-  width: auto;
-  object-fit: contain;
-  opacity: 0.92;
-}
 
 .header-clear-btn {
   background: transparent;
@@ -801,9 +795,6 @@ body {
     display: none;
   }
 
-  .header-status-img {
-    display: none;
-  }
 
   .header-logo {
     height: 26px;

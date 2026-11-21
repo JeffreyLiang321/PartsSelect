@@ -20,11 +20,6 @@ function Header({ onClear }) {
           <span className="header-tagline">Parts Assistant</span>
         </div>
         <div className="header-right">
-          <img
-            src="/status_info.png"
-            alt="Support: 1-866-319-8402 Mon–Sat 8am–8pm EST"
-            className="header-status-img"
-          />
           <button className="header-clear-btn" onClick={() => setShowConfirm(true)}>
             New conversation
           </button>
