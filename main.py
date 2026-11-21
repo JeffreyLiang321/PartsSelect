@@ -57,16 +57,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PartSelect Agent API", lifespan=lifespan)
 
-# CORS — browsers may only call us from these origins.
+# Browsers may only call us from these origins.
 # Prod: ALLOWED_ORIGINS="https://<frontend>.vercel.app"
 _default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        o.strip()
-        for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
-        if o.strip()
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,   # no cookies/auth — the API is anonymous
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
@@ -117,6 +118,17 @@ async def chat(payload: ChatRequest, request: Request):
       threading.Event the agent checks between iterations / tool calls, so
       it bails at the next safe boundary instead of burning more tokens.
     """
+    # CORS headers alone aren't enough: some hosts' proxies (e.g. Hugging Face
+    # Spaces) add permissive CORS headers of their own. Browsers always send
+    # Origin on cross-site requests and pages can't forge it, so rejecting
+    # unknown origins here stops other sites from using this API through
+    # their visitors' browsers. Requests without Origin (curl, scripts) pass
+    # through to the rate limiter.
+    origin = request.headers.get("origin")
+    if origin and origin not in ALLOWED_ORIGINS:
+        logger.warning("rejected request from disallowed origin")
+        raise HTTPException(status_code=403, detail="Origin not allowed")
+
     allowed, retry_after, reason = rate_limiter.check(
         client_ip(request.headers, request.client.host if request.client else None)
     )
