@@ -414,6 +414,12 @@ body {
   gap: 8px;
 }
 
+.suggested-prompts-label {
+  width: 100%;
+  font-size: 12px;
+  color: #6b7b7b;
+}
+
 .chip {
   background: #ffffff;
   color: #337778;
