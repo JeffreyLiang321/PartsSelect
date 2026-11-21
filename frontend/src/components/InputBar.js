@@ -67,6 +67,7 @@ function InputBar({ onSend, onStop, isLoading, applianceType, onApplianceChange 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
+            maxLength={980}
           />
           <div className="input-box-footer">
             {isLoading ? (

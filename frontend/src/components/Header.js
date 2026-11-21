@@ -30,6 +30,12 @@ function Header({ onClear }) {
           </button>
         </div>
       </header>
+      <div className="demo-banner">
+        Demo project · Not affiliated with PartSelect ·{' '}
+        <a href="https://github.com/JeffreyLiang321/PartsSelect" target="_blank" rel="noopener noreferrer">
+          Source on GitHub
+        </a>
+      </div>
 
       {showConfirm && (
         <div className="modal-overlay" onClick={() => setShowConfirm(false)}>

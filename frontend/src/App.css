@@ -116,6 +116,19 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
+.demo-banner {
+  background-color: #f2f6f6;
+  color: #4a5a5a;
+  font-size: 12px;
+  text-align: center;
+  padding: 4px 16px;
+  border-bottom: 1px solid #dde6e6;
+}
+
+.demo-banner a {
+  color: #337778;
+}
+
 .header-left {
   display: flex;
   align-items: center;
